@@ -1,2 +1,3 @@
-# botkit-storage-base
-A sample repo for use in creating new storage modules for Botkit
+# botkit-storage-azure-table-storage
+
+To test, install Azure Storage Emulator locally (Windows only), and start it running.
