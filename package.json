@@ -24,7 +24,6 @@
   },
   "homepage": "https://github.com/simonjduff/botkit-storage-azure-table-storage#readme",
   "dependencies": {
-    "async": "^2.6.0",
     "azure-storage": "^2.8.0"
   },
   "devDependencies": {

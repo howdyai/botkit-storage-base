@@ -23,7 +23,6 @@ controller.storage.teams.get(message.team, function(err, team_data){
 */
 
 const azure = require('azure-storage');
-const async = require('async'); 
 
 module.exports = function(config) {
 
