@@ -39,119 +39,153 @@ module.exports = function(config) {
 
     var ensuredTables = {};
 
-    function ensureTable(tableName, cb){
-        if (ensuredTables[tableName])
-        {
-            console.info(`Table ${tableName} already ensured`);
-            return cb();
-        }
-
-        console.info(`Ensuring table: [${tableName}]`);
-        tableService.createTableIfNotExists(tableName, (err, result, response) => {
-            if (err){
-                console.error(`${JSON.stringify(err)}\n${JSON.stringify(result)}\n${JSON.stringify(response)}`);
-                return cb(err);
-            }
-            ensuredTables[tableName] = true;
-            cb();
-        });
-    }
-
-    function retrieveEntity(table, id, cb) {
-        ensureTable(table, (err, result) => {
-            if (err){return cb(err);}
-            tableService.retrieveEntity(table, 'partition', id, (err, result) => {
-                if (err){
-                    if (err.code == 'ResourceNotFound'){
-                        err.displayName = 'NotFound';
-                        return cb(err);
-                    }
-                    else{
-                        return cb(err);
-                    }
-                }
-        
-                cb(null, JSON.parse(result.Data['_']));
+    function createTableIfNotExistsPromise(tableName){
+        return new Promise((resolve, reject) => {
+            tableService.createTableIfNotExists(tableName, (err, result) => {
+                if (err){return reject(err);}
+                resolve(result);
             });
         });
     }
 
-    function insertEntity(table, entity, cb){
-        ensureTable(table, (err, result) => {
-            if (err){return cb(err);}
-            tableService.insertOrReplaceEntity (table,
+    function retrieveEntityPromise(table, id){
+        return new Promise((resolve, reject) => {
+            tableService.retrieveEntity(table, 'partition', id, (err, result) => {
+                if (err){return reject(err);}
+                resolve(result);
+            });
+        });
+    }
+    function insertOrReplaceEntityPromise(table, entity){
+        return new Promise((resolve, reject) => {
+            tableService.insertOrReplaceEntity(table, entity, (err, result) => {
+                if (err){return reject(err);}
+                resolve(result);
+            });
+        });
+    }
+    function deleteEntityPromise(table, entity){
+        return new Promise((resolve, reject) => {
+            tableService.deleteEntity(table, entity, (err, result) => {
+                if (err){return reject(err);}
+                resolve(result);
+            });
+        });
+    }
+
+    function queryEntitiesPromise(table, query){
+        return new Promise((resolve, reject)=>{
+            tableService.queryEntities(table, query, null, (err, result) => {
+                if (err){return reject(err);}
+                resolve(result);
+            });
+        });
+    }
+
+    function ensureTable(tableName){
+        return createTableIfNotExistsPromise(tableName)
+        .then(value =>
+            ensuredTables[tableName] = true
+        );
+    }
+
+    function retrieveEntity(table, id) {
+        return ensureTable(table)
+        .then(value => 
+            retrieveEntityPromise(table, id)
+            .then(value =>
+                JSON.parse(value.Data['_'])
+            , e => {
+                if (e.code == 'ResourceNotFound'){
+                    e.displayName = 'NotFound';
+                }
+                throw e;
+            }
+        ));
+    }
+
+    function insertEntity(table, entity){
+        return ensureTable(table)
+        .then(value =>
+            insertOrReplaceEntityPromise(table,
                 {
                     PartitionKey: entGen.String('partition'),
                     RowKey: entGen.String(entity.id),
                     Data: entGen.String(JSON.stringify(entity))
-                },
-            cb);
-        });
+                })
+        );
     }
 
     function deleteEntity(table, id, cb){
-        ensureTable(table, (err, result) => {
-            if (err){return cb(err);}
-            tableService.deleteEntity(table, {
+        return ensureTable(table)
+        .then(value =>
+            deleteEntityPromise(table, {
                 PartitionKey: entGen.String(id),
                 RowKey: entGen.String('partition')
-            }, cb);
-        });
+            })
+        );
     }
 
-    function allEntities(table, cb){ 
-        ensureTable(table, (err, result) => {
-            if (err){return cb(err);}
-            tableService.queryEntities(table, 
-                new azure.TableQuery(), null, (err, data) => { 
-                    cb(err, Object.keys(data.entries).map(function(key) {
-                        return JSON.parse(data.entries[key].Data['_']);
-                    }));
-                });
+    function allEntities(table){ 
+        return ensureTable(table)
+        .then(value =>
+            queryEntitiesPromise(table, new azure.TableQuery(), null)
+            .then(data => Object.keys(data.entries).map(function(key) {
+                return JSON.parse(data.entries[key].Data['_']);
+            }))
+        );
+    }
+
+    function nodeify(promise, cb){
+        promise.then(value =>
+            cb(null, value),
+            error => cb(error)
+        ).catch(error => {
+            console.error(`Error in callback ${error}`);
         });
     }
 
     var storage = {
         teams: {
             get: function(team_id, cb) {
-                retrieveEntity(teamTable, team_id, cb);
+                nodeify(retrieveEntity(teamTable, team_id), cb);
             },
             save: function(team_data, cb) {
-                insertEntity(teamTable, team_data, cb);
+                nodeify(insertEntity(teamTable, team_data), cb);
             },
             delete: function(team_id, cb) {
-                deleteEntity(teamTable, team_id, cb);
+                nodeify(deleteEntity(teamTable, team_id), cb);
             },
             all: function(cb) {
-                allEntities(teamTable, cb);
+                nodeify(allEntities(teamTable), cb);
             }
         },
         users: {
             get: function(user_id, cb) {
-                retrieveEntity(userTable, user_id, cb);
+                nodeify(retrieveEntity(userTable, user_id), cb);
             },
             save: function(user_data, cb) {
-                insertEntity(userTable, user_data, cb);
+                nodeify(insertEntity(userTable, user_data), cb);
             },
             delete: function(user_id, cb) {
-                deleteEntity(userTable, user_id, cb);
+                nodeify(deleteEntity(userTable, user_id), cb);
             },
             all: function(cb) {
-                allEntities(userTable, cb);
+                nodeify(allEntities(userTable), cb);
             }
         },
         channels: {
             get: function(channel_id, cb) {
-                retrieveEntity(channelTable, channel_id, cb);
+                nodeify(retrieveEntity(channelTable, channel_id), cb);
             },
             save: function(channel_data, cb) {
-                insertEntity(channelTable, channel_data, cb);
+                nodeify(insertEntity(channelTable, channel_data), cb);
             },
             delete: function(channel_id, cb) {
-                deleteEntity(channelTable, channel_id, cb);
+                nodeify(deleteEntity(channelTable, channel_id), cb);
             },
             all: function(cb) {
-                allEntities(channelTable, cb);
+                nodeify(allEntities(channelTable), cb);
             }
         }
     };

@@ -23,6 +23,7 @@ testObj1 = {id: 'TEST1', foo: 'bar1'};
 
 var testStorageMethod = function(storageMethod) {
     storageMethod.save(testObj0, function(err) {
+        if (err){console.error(err);}
         test.assert(!err);
         storageMethod.save(testObj1, function(err) {
             test.assert(!err);
