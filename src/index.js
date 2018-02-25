@@ -39,46 +39,38 @@ module.exports = function(config) {
 
     var ensuredTables = {};
 
+    function cb2Promise(resolve, reject){
+        return function(err, result){
+            if (err){return reject(err);}
+                resolve(result);
+        }
+    }
+
     function createTableIfNotExistsPromise(tableName){
         return new Promise((resolve, reject) => {
-            tableService.createTableIfNotExists(tableName, (err, result) => {
-                if (err){return reject(err);}
-                resolve(result);
-            });
+            tableService.createTableIfNotExists(tableName, cb2Promise(resolve,reject));
         });
     }
 
     function retrieveEntityPromise(table, id){
         return new Promise((resolve, reject) => {
-            tableService.retrieveEntity(table, 'partition', id, (err, result) => {
-                if (err){return reject(err);}
-                resolve(result);
-            });
+            tableService.retrieveEntity(table, 'partition', id, cb2Promise(resolve,reject));
         });
     }
     function insertOrReplaceEntityPromise(table, entity){
         return new Promise((resolve, reject) => {
-            tableService.insertOrReplaceEntity(table, entity, (err, result) => {
-                if (err){return reject(err);}
-                resolve(result);
-            });
+            tableService.insertOrReplaceEntity(table, entity, cb2Promise(resolve,reject));
         });
     }
     function deleteEntityPromise(table, entity){
         return new Promise((resolve, reject) => {
-            tableService.deleteEntity(table, entity, (err, result) => {
-                if (err){return reject(err);}
-                resolve(result);
-            });
+            tableService.deleteEntity(table, entity, cb2Promise(resolve,reject));
         });
     }
 
     function queryEntitiesPromise(table, query){
         return new Promise((resolve, reject)=>{
-            tableService.queryEntities(table, query, null, (err, result) => {
-                if (err){return reject(err);}
-                resolve(result);
-            });
+            tableService.queryEntities(table, query, null, cb2Promise(resolve,reject));
         });
     }
 
@@ -94,8 +86,8 @@ module.exports = function(config) {
         .then(value => 
             retrieveEntityPromise(table, id)
             .then(value =>
-                JSON.parse(value.Data['_'])
-            , e => {
+                JSON.parse(value.Data['_']))
+            .catch(e => {
                 if (e.code == 'ResourceNotFound'){
                     e.displayName = 'NotFound';
                 }
