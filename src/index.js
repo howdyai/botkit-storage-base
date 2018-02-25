@@ -33,6 +33,12 @@ module.exports = function(config) {
     var tableService = azure.createTableService(config.storageConnectionString);
     var entGen = azure.TableUtilities.entityGenerator;
 
+    var teamTable = `${config.tablePrefix}Teams`;
+    var userTable = `${config.tablePrefix}Users`;
+    var channelTable = `${config.tablePrefix}Channels`;
+
+    var ensuredTables = {};
+
     function ensureTable(tableName, cb){
         if (ensuredTables[tableName])
         {
@@ -50,12 +56,6 @@ module.exports = function(config) {
             cb();
         });
     }
-
-    var teamTable = `${config.tablePrefix}Teams`;
-    var userTable = `${config.tablePrefix}Users`;
-    var channelTable = `${config.tablePrefix}Channels`;
-
-    var ensuredTables = {};
 
     function retrieveEntity(table, id, cb) {
         ensureTable(table, (err, res) => {
