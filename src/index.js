@@ -42,15 +42,15 @@ module.exports = function(config) {
     function ensureTable(tableName, cb){
         if (ensuredTables[tableName])
         {
-            console.log(`Table ${tableName} already ensured`);
+            console.info(`Table ${tableName} already ensured`);
             return cb();
         }
 
-        console.log(`Ensuring table: [${tableName}]`);
+        console.info(`Ensuring table: [${tableName}]`);
         tableService.createTableIfNotExists(tableName, (err, result, response) => {
             if (err){
-                console.log(`${JSON.stringify(err)}\n${JSON.stringify(result)}\n${JSON.stringify(response)}`);
-                throw err;
+                console.error(`${JSON.stringify(err)}\n${JSON.stringify(result)}\n${JSON.stringify(response)}`);
+                return cb(err);
             }
             ensuredTables[tableName] = true;
             cb();
@@ -58,27 +58,27 @@ module.exports = function(config) {
     }
 
     function retrieveEntity(table, id, cb) {
-        ensureTable(table, (err, res) => {
-            if (err){throw err;}
-            tableService.retrieveEntity(table, 'partition', id, (err, res) => {
+        ensureTable(table, (err, result) => {
+            if (err){return cb(err);}
+            tableService.retrieveEntity(table, 'partition', id, (err, result) => {
                 if (err){
                     if (err.code == 'ResourceNotFound'){
                         err.displayName = 'NotFound';
-                        return cb(err, null);
+                        return cb(err);
                     }
                     else{
-                        throw err;
+                        return cb(err);
                     }
                 }
         
-                cb(err, JSON.parse(res.Data['_']));
+                cb(null, JSON.parse(result.Data['_']));
             });
         });
     }
 
     function insertEntity(table, entity, cb){
         ensureTable(table, (err, result) => {
-            if (err) {throw err;}
+            if (err){return cb(err);}
             tableService.insertOrReplaceEntity (table,
                 {
                     PartitionKey: entGen.String('partition'),
@@ -91,7 +91,7 @@ module.exports = function(config) {
 
     function deleteEntity(table, id, cb){
         ensureTable(table, (err, result) => {
-            if (err) {throw err;}
+            if (err){return cb(err);}
             tableService.deleteEntity(table, {
                 PartitionKey: entGen.String(id),
                 RowKey: entGen.String('partition')
@@ -101,7 +101,7 @@ module.exports = function(config) {
 
     function allEntities(table, cb){ 
         ensureTable(teamTable, (err, result) => {
-            if (err) {throw err;}
+            if (err){return cb(err);}
             tableService.queryEntities(table, 
                 new azure.TableQuery(), null, (err, data) => { 
                     cb(err, Object.keys(data.entries).map(function(key) {
