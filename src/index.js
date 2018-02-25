@@ -100,7 +100,7 @@ module.exports = function(config) {
     }
 
     function allEntities(table, cb){ 
-        ensureTable(teamTable, (err, result) => {
+        ensureTable(table, (err, result) => {
             if (err){return cb(err);}
             tableService.queryEntities(table, 
                 new azure.TableQuery(), null, (err, data) => { 
