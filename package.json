@@ -1,0 +1,33 @@
+{
+  "name": "botkit-storage-azure-table-storage",
+  "version": "1.0.0",
+  "description": "Azure Table Storage plugin for botkit",
+  "main": "src/index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node tests/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simonjduff/botkit-storage-azure-table-storage.git"
+  },
+  "keywords": [
+    "azure-table-storage",
+    "botkit"
+  ],
+  "author": "Simon J Duff",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/simonjduff/botkit-storage-azure-table-storage/issues"
+  },
+  "homepage": "https://github.com/simonjduff/botkit-storage-azure-table-storage#readme",
+  "dependencies": {
+    "async": "^2.6.0",
+    "azure-storage": "^2.8.0"
+  },
+  "devDependencies": {
+    "unit.js": "^2.0.0"
+  }
+}
